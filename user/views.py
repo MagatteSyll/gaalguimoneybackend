@@ -204,7 +204,7 @@ class FinalisationRegistration(APIView):
 		data=request.data
 		serializer=UserSerializer(data=data)
 		if serializer.is_valid():
-			serializer.save(active=False,document_verif=False)
+			serializer.save(active=True,document_verif=False)
 			return Response({'success':'registration'})
 
 

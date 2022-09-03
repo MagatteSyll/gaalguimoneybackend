@@ -147,11 +147,11 @@ class MessageSerializer(serializers.ModelSerializer):
 	class Meta:
 		model=Messages
 		fields="__all__"
-
+'''
 class PhoneVerificationCodeSerializer(serializers.ModelSerializer):
 	class Meta:
 		model=PhoneVerificationCode
-		fields="__all__"
+		fields="__all__"'''
 
 class PhoneConfirmationSerializer(serializers.ModelSerializer):
 	class Meta:

@@ -15,8 +15,10 @@ router.register('envoyercode', EnvoiViaCodeDirect)
 
 urlpatterns=[
     path('',include(router.urls)),
-    path('verificationphoneinscription/',ValidNumber.as_view()),
-    path('registration/',RegistrationView.as_view()),
+    path('getphonecode/',GetCodeInscription.as_view()),
+    path('verificationtel/',ConfirmationCode.as_view()),
+    path('getuserphone/',GetPhoneCode.as_view()),
+    path('finalisationinscription/',FinalisationRegistration.as_view()),
     path('login/',MyTokenObtainPairView.as_view()),
     path('token/refresh/',MyTokenRefreshPairView.as_view()),
     path('verifenvoi/',VerificationCredentialsEnvoi.as_view()),
@@ -33,8 +35,6 @@ urlpatterns=[
     path('recudirect/',RecuDirect.as_view()),
     path('recucode/',RecuCode.as_view()),
     path('messagespecifique/',RecuDonne.as_view()),
-    path('getnewuser/',GetNewUser.as_view()),
-    path('getnewusermobile/',GetNewUserMobile.as_view()),
     path('getransaction/',GetRansactionEnvoiDirect.as_view()),
     path('getransactioncode/',GetRansactionCode.as_view()),
     path('getpub/',GetPub.as_view()),
@@ -44,17 +44,12 @@ urlpatterns=[
     path('getprofessionnel/',GetProfessionnel.as_view()),
     path('payementqrcode/',PayementQrCode.as_view()),
     path('recupayement/',RecuPayement.as_view()),
-    path("verificationphonepourgaalguishop/",LierSonCompteGaalguiShop.as_view())
+    path("verificationphonepourgaalguishop/",LierSonCompteGaalguiShop.as_view()),
+    path("getnotification/",UserNotif.as_view()),
+    path("usereadnotif/",UserNotifRead.as_view()),
+    path("getbadgenotif/",UserBadgeNotif.as_view())
 
     
     
-    
-    
-    
-    
-
-
-
-
 
 ]

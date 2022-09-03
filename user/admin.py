@@ -93,7 +93,7 @@ class MessagesAdmin(admin.ModelAdmin):
 	@admin.display(empty_value='???')
 	def get_user(self, obj):
 		return obj.user.prenom+" "+obj.user.nom
-
+'''
 
 class PhoneVerificationEnModifiantAdmin(admin.ModelAdmin):
 	list_display=[ 'get_user','code','active']
@@ -104,7 +104,7 @@ class PhoneVerificationEnModifiantAdmin(admin.ModelAdmin):
 
 	@admin.display(empty_value='???')
 	def get_user(self, obj):
-		return obj.user.prenom+" "+obj.user.nom
+		return obj.user.prenom+" "+obj.user.nom'''
 
 class PayementGaalguiShopAdmin(admin.ModelAdmin):
 	list_display=['get_user','livraison']
@@ -167,7 +167,7 @@ admin.site.register(Depot,DepotAdmin)
 admin.site.register(Retrait,RetraitAdmin)
 admin.site.register(ViaCode,ViaCodeAdmin)
 admin.site.register(Messages,MessagesAdmin)
-admin.site.register(PhoneVerificationCode,PhoneVerificationEnModifiantAdmin)
+#admin.site.register(PhoneVerificationCode,PhoneVerificationEnModifiantAdmin)
 admin.site.register(PayementGaalgui,PayementGaalguiShopAdmin)
 admin.site.register(PhoneConfirmation,PhoneConfirmationInscriptionAdmin)
 admin.site.register(Region,RegionAdmin)

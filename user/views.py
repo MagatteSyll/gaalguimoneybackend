@@ -166,41 +166,46 @@ class ValidNumber(APIView):
 			verif.save()
 			return Response({'succes':'registration'})
 
-	
-
-#Inscription
-class RegistrationView(APIView):
-	permission_classes = [permissions.AllowAny]
-	def post(self, request):
-		data=request.data
-		serializer =UserSerializer(data=data)
-		if serializer.is_valid():
-			user=serializer.save(active=False,document_verif=False)
+class GetCodeInscription(APIView):
+	permission_classes=[permissions.AllowAny]
+	def post(self,request):
+		phone=request.data.get('phone')
+		ifuser=User.objects.filter(phone=phone).count()
+		phonecode=PhoneConfirmation.objects.filter(phone=phone).count()
+		if ifuser==0 and phonecode<=3:
 			code=randint(100000,999999)
-			verif=PhoneVerificationCode.objects.create(user=user,code=code,active=True)
-			phone=data['phone']
-			SMSVerif(phone,code)
-			return Response({'id':user.id,'code_id':verif.id,'prenom':user.prenom,'nom':user.nom})
-		#return Response(serializer.errors)
+			phonecode=PhoneConfirmation.objects.create(code=code,phone=phone,active=True)
+			#SMSVerif(phone,code)
+			return Response({'id':phonecode.id})
 
-##???
-class GetNewUser(APIView):
+class ConfirmationCode(APIView):
+	permission_classes=[permissions.AllowAny]
+	def post(self,request):
+		code=int(request.data.get('code'))
+		id=request.data.get('id')
+		phonecode=PhoneConfirmation.objects.get(id=id,active=True)
+		if phonecode.code==code:
+			phonecode.active=False
+			phonecode.save()
+			return Response({'success':'verification'})
+
+class GetPhoneCode(APIView):
 	permission_classes=[permissions.AllowAny]
 	def post(self,request):
 		id=request.data.get('id')
-		user=User.objects.get(id=id,active=False)
-		serializer=UserSerializer(user)
+		phonecode=PhoneConfirmation.objects.get(id=id)
+		serializer=PhoneConfirmationSerializer(phonecode)
 		return Response(serializer.data)
+		
 
-##??
-class GetNewUserMobile(APIView):
+class FinalisationRegistration(APIView):
 	permission_classes=[permissions.AllowAny]
 	def post(self,request):
-		id=request.data.get('id')
-		code=PhoneVerificationCode.objects.get(id=id,active=True)
-		user=code.user
-		serializer=UserSerializer(user)
-		return Response(serializer.data)
+		data=request.data
+		serializer=UserSerializer(data=data)
+		if serializer.is_valid():
+			serializer.save(active=False,document_verif=False)
+			return Response({'success':'registration'})
 
 
 #Verification du numero de telephone en cas d oubli du mot de passe
@@ -444,6 +449,33 @@ class UserMessages(generics.ListAPIView):
 		user=self.request.user
 		messages=Messages.objects.filter(user=user,is_trans=True).order_by('-id')
 		return messages
+
+#Les transactions qui necessitent une notification 
+class UserNotif(generics.ListAPIView):
+	pagination_class =MyPaginationClass
+	serializer_class=MessageSerializer
+
+	def get_queryset(self, *args, **kwargs):
+		user=self.request.user
+		messages=Messages.objects.filter(user=user,should_notify=True).order_by('-id')
+		return messages
+
+#Lecture des notifications
+class UserNotifRead(APIView):
+	def get(self,request):
+		messages=Messages.objects.filter(user=request.user,should_notify=True,lu=False)
+		for m in messages:
+			m.lu=True
+			m.save()
+		return Response({'success':'read notif'})	
+
+#Badge de la notification
+class UserBadgeNotif(APIView):
+	def get(self,request):
+		numbernotif=Messages.objects.filter(user=request.user,should_notify=True,lu=False).count()
+		return Response({'badge':numbernotif})
+
+		
 
 #filtration transaction
 class RechercheMessage(generics.ListAPIView):

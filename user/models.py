@@ -15,7 +15,7 @@ def random_string_generator(request):
 
 NATURE_TRANSACTION= (
     ("envoi direct", "envoi direct"),
-    ("envoi via code", "envoi via code"),
+    ("envoi via code", "envoi via code"), 
     ("depot", "depot"), 
     ("retrait", "retrait"),
     ("reception", "reception"),
@@ -229,6 +229,7 @@ class Messages(models.Model):
 	logo=models.ImageField(upload_to='static/media',blank=True)
 	should_notify=models.BooleanField(default=False)
 	is_trans=models.BooleanField(default=True)
+	lu=models.BooleanField(default=False)
 	
 
 
@@ -252,12 +253,12 @@ class VerificationTransaction(models.Model):
 
 
 
-
+'''
 class PhoneVerificationCode(models.Model):
 	user=models.ForeignKey(User,on_delete=models.CASCADE)
 	code=models.PositiveIntegerField(unique=True)
 	created=models.DateTimeField(auto_now_add=True)
-	active=models.BooleanField(default=False)
+	active=models.BooleanField(default=False)'''
 
 
 class PayementGaalgui(models.Model):
@@ -280,6 +281,7 @@ class AnnulationGaalguiShop(models.Model):
 class PhoneConfirmation(models.Model):
 	phone=PhoneNumberField()
 	code=models.PositiveIntegerField(unique=True) 
+	active=models.BooleanField(default=False)
 	created=models.DateTimeField(auto_now_add=True)
 
 

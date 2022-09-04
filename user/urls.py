@@ -38,7 +38,6 @@ urlpatterns=[
     path('getransaction/',GetRansactionEnvoiDirect.as_view()),
     path('getransactioncode/',GetRansactionCode.as_view()),
     path('getpub/',GetPub.as_view()),
-    path('verificationcodeid/',VerificationIdReset.as_view()),
     path('codereset/',CodeReset.as_view()),
     path('qrverification/',GetCodeQr.as_view()),
     path('getprofessionnel/',GetProfessionnel.as_view()),

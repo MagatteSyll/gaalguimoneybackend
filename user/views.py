@@ -149,22 +149,7 @@ class MyTokenObtainPairView(TokenObtainPairView):
 class MyTokenRefreshPairView(TokenRefreshView):
 	serializer_class=MyTokenObtainPairSerializer 
 
-#Verifiation du numero avant inscription
-class ValidNumber(APIView):
-	permission_classes = [permissions.AllowAny]
-	def post(self,request):
-		data=request.data
-		id=data['id']
-		user=User.objects.get(id=id)
-		code_id=data['code_id']
-		code=int(data['code'])
-		verif=PhoneVerificationCode.objects.get(id=code_id,active=True)
-		if verif.code==code:
-			user.active=True
-			user.save()
-			verif.active=False 
-			verif.save()
-			return Response({'succes':'registration'})
+
 
 class GetCodeInscription(APIView):
 	permission_classes=[permissions.AllowAny]
@@ -216,20 +201,11 @@ class ResetVerification(APIView):
 		client=User.objects.get(phone=phone,active=True,document_verif=True,is_staff=False)
 		if client is not None:
 			code=randint(100000,999999)
-			verif=PhoneVerificationCode.objects.create(user=client,code=code,active=True)
+			verif=PhoneConfirmation.objects.create(phone=phone,code=code,active=True)
 			id=verif.id
 			SMSVerif(phone,code)
 			return Response({'id':id})
 
-#Verification de l activite du code
-class VerificationIdReset(APIView):
-	permission_classes=[permissions.AllowAny]
-	def post(self,request):
-		id=request.data.get('id')
-		verif=PhoneVerificationCode.objects.get(id=id)
-		if verif.active==True:
-			return Response(True)
-		return Response(False)
 
 #Verification du code
 class CodeReset(APIView):
@@ -237,7 +213,7 @@ class CodeReset(APIView):
 	def post(self,request):
 		id=request.data.get('id')
 		code=int(request.data.get('code'))
-		verif=PhoneVerificationCode.objects.get(id=id,active=True)
+		verif=PhoneConfirmation.objects.get(id=id,active=True)
 		if verif.code==code:
 			return Response({'succes':'confirmation phone'})
 
@@ -251,10 +227,10 @@ class ResetPassword(ModelViewSet):
 	def modif_password(self,request,*args,**kwargs):
 		data=request.data
 		id=data['id']
-		verif=PhoneVerificationCode.objects.get(id=id,active=True)
+		verif=PhoneConfirmation.objects.get(id=id,active=True)
 		if verif is not None:
 			password=data['password']
-			user=verif.user
+			user=User.objects.get(phone=verif.phone,active=True,document_verif=True,is_staff=False)
 			user.set_password(password)
 			user.save()
 			verif.active=False
@@ -500,9 +476,9 @@ class VerificationPhonePourPayement(APIView):
 		client=User.objects.get(phone=phone,active=True,document_verif=True)
 		if client is not None and client.solde>=somme:
 			code=randint(10000,99999)
-			verif=PhoneVerificationCode.objects.create(user=client,code=code,active=True)
+			verif=PhoneConfirmation.objects.create(user=client.phone,code=code,active=True)
 			id=verif.id
-			#CodePayementEGaalgui(client,code) 
+			#CodePayementEGaalgui(client,code) ,send sms
 			return Response({'id':id})
 
 
@@ -514,7 +490,7 @@ class RemoveCode(ModelViewSet):
 	@action(methods=["put"], detail=False, url_path='coderemove')
 	def remove_code(self,request,*args,**kwargs):
 		id=self.request.data.get('id')
-		verif=PhoneVerificationCode.objects.get(id=id)
+		verif=PhoneConfirmation.objects.get(id=id)
 		if verif is not None:
 			verif.delete()
 			return Response({'suppression':'success'})
@@ -526,7 +502,7 @@ class Payementgaalgui(APIView):
 		data=request.data
 		code=int(request.data.get('code'))
 		id=request.data.get('id')
-		verif=PhoneVerificationCode.objects.get(id=id,active=True)
+		verif=PhoneConfirmation.objects.get(id=id,active=True)
 		if verif.code==code:
 			phone=request.data.get('phone')
 			user=User.objects.get(phone=phone,active=True,document_verif=True)

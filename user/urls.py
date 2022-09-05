@@ -46,7 +46,8 @@ urlpatterns=[
     path("verificationphonepourgaalguishop/",LierSonCompteGaalguiShop.as_view()),
     path("getnotification/",UserNotif.as_view()),
     path("usereadnotif/",UserNotifRead.as_view()),
-    path("getbadgenotif/",UserBadgeNotif.as_view())
+    path("getbadgenotif/",UserBadgeNotif.as_view()),
+    path("verifynumb/",VerifyContact.as_view())
 
     
     

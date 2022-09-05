@@ -238,7 +238,8 @@ class ResetPassword(ModelViewSet):
 			return Response({'message':'donnee bien modifiee'})
 
 
-
+#ENVOI DIRECT Mobile
+#Verification list contact mobile
 class VerifyContact(APIView):
 	def post(self,request):
 		phone=request.data.get("num")
@@ -246,6 +247,17 @@ class VerifyContact(APIView):
 		if verif==0:
 			return Response({'result':False})
 		return Response({'result':True})
+
+
+#Recuperation de l utilisateur apres verification
+class GetUserFromPhone(APIView):
+	def post(self,request):
+		phone=request.data.get('phone')
+		user=User.objects.get(phone=phone)
+		if user is not None:
+			serializer=UserSerializer(user)
+			return Response(serializer.data)
+	
 
 
 	

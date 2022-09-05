@@ -243,7 +243,7 @@ class ResetPassword(ModelViewSet):
 class VerifyContact(APIView):
 	def post(self,request):
 		phone=request.data.get("num")
-		verif=User.objects.filter(phone=phone).count()
+		verif=User.objects.filter(phone=phone,active=True,document_verif=True).count()
 		if verif >0:
 			user=User.objects.get(phone=phone)
 			if user!=request.user:
@@ -254,7 +254,7 @@ class VerifyContact(APIView):
 class GetUserFromPhone(APIView):
 	def post(self,request):
 		phone=request.data.get('phone')
-		user=User.objects.get(phone=phone)
+		user=User.objects.get(phone=phone,active=True,document_verif=True)
 		if user is not None:
 			serializer=UserSerializer(user)
 			return Response(serializer.data)

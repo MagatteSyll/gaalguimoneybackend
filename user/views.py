@@ -217,13 +217,13 @@ class CodeReset(APIView):
 		if verif.code==code:
 			return Response({'succes':'confirmation phone'})
 
-
+ 
 #Changement du mot de passe
 class ResetPassword(ModelViewSet):
 	permission_classes = [permissions.AllowAny]
 	queryset = User.objects.filter(active=True)
 	serializer_class=UserSerializer
-	@action(methods=["put"], detail=False, url_path='reseter')
+	@action(methods=["put"], detail=False, url_path='reseter')  
 	def modif_password(self,request,*args,**kwargs):
 		data=request.data
 		id=data['id']
@@ -236,6 +236,17 @@ class ResetPassword(ModelViewSet):
 			verif.active=False
 			verif.save()
 			return Response({'message':'donnee bien modifiee'})
+
+
+
+class VerifyContact(APIView):
+	def post(self,request):
+		phone=request.data.get("num")
+		verif=User.objects.filter(phone=phone).count()
+		if verif==0:
+			return Response({'result':False})
+		return Response({'result':True})
+
 
 	
 

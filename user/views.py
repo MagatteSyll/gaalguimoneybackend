@@ -244,9 +244,10 @@ class VerifyContact(APIView):
 	def post(self,request):
 		phone=request.data.get("num")
 		verif=User.objects.filter(phone=phone).count()
-		if verif==0:
-			return Response({'result':False})
-		return Response({'result':True})
+		if verif >0:
+			user=User.objects.get(phone=phone)
+			if user!=request.user:
+				return Response({'succes':'verification'})
 
 
 #Recuperation de l utilisateur apres verification

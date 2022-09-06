@@ -338,7 +338,7 @@ class EnvoyerDirect(ModelViewSet):
 				admina.save()
 				EnvoiDirectNotif(envoyeur,receveur,trans.somme,trans.commission,employe,trans.total)
 				env=Envoi.objects.create(envoyeur=envoyeur,phone_receveur=receveur.phone,somme=trans.somme
-					,commission=trans.commission,relever=False)
+					,commission=trans.commission,relever=False,total=trans.total)
 				trans.delete()
 				return Response({'id':env.id,'nature':"envoi direct"})
 
@@ -409,7 +409,7 @@ class EnvoiViaCodeDirect(ModelViewSet):
 			if client.solde>=trans.total:
 				viacod=ViaCode.objects.create(code=code,
 					Nom_complet_du_receveur=trans.nom_complet_destinataire ,client=client
-					,somme=trans.somme,commission=trans.commission,active=True,retirer=False)
+					,somme=trans.somme,commission=trans.commission,active=True,retirer=False,total=trans.total)
 				client.solde-=trans.total
 				client.save()
 				admina.solde+=trans.commission

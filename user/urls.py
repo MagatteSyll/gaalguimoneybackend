@@ -48,7 +48,8 @@ urlpatterns=[
     path("usereadnotif/",UserNotifRead.as_view()),
     path("getbadgenotif/",UserBadgeNotif.as_view()),
     path("verifynumb/",VerifyContact.as_view()),
-    path("getbeneficiaire/",GetUserFromPhone.as_view())
+    path("getbeneficiaire/",GetUserFromPhone.as_view()),
+    path('getuserqrcode/',GetUserQrCode.as_view())
 
     
     

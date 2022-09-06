@@ -475,7 +475,11 @@ class UserBadgeNotif(APIView):
 		numbernotif=Messages.objects.filter(user=request.user,should_notify=True,lu=False).count()
 		return Response({'badge':numbernotif})
 
-		
+class GetUserQrCode(APIView):
+	def get(self,request):
+		qrcod=QrCodeClient.objects.get(user=user)
+		img=qrcod.code.url
+		return Response({'qrcode':img})
 
 #filtration transaction
 class RechercheMessage(generics.ListAPIView):

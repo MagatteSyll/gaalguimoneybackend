@@ -308,6 +308,7 @@ class ActivationDuClient(APIView):
 			action='Activation de l utilisateur numero '+ " "+ str(user.id)
 			ActionStaff.objects.create(action=action,employe=employe,nature="activation",montant_rentrant=0,
 				montant_entreprise=0)
+			QrCodeClient.objects.create(user=user)
 			ActivationClientNotif(user)
 			activationStaffNotif(employe,user.prenom,user.nom)
 			return Response({'success':'activation'})

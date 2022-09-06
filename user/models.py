@@ -6,8 +6,9 @@ from autoslug import AutoSlugField
 import random
 import string 
 from io import BytesIO
-from django.core.files import File
+from django.core.files import File 
 from PIL import Image,ImageDraw
+import qrcode
 
 
 def random_string_generator(request):
@@ -146,7 +147,7 @@ class QrCodeClient(models.Model):
 		self.code.save(file_name,File(stream),save=False)
 		qr_offset.close()
 		super().save(*args,**kwargs)
-
+  
 
 class Employe(models.Model):
 	user=models.OneToOneField(User,on_delete=models.PROTECT)

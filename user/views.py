@@ -477,7 +477,7 @@ class UserBadgeNotif(APIView):
 
 class GetUserQrCode(APIView):
 	def get(self,request):
-		qrcod=QrCodeClient.objects.get(user=user)
+		qrcod=QrCodeClient.objects.get(user=request.user)
 		img=qrcod.code.url
 		return Response({'qrcode':img})
 

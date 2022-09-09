@@ -387,8 +387,10 @@ class VerificationClientQrCodePay(APIView):
 	def post(self,request):
 		slug=request.data.get("slug")
 		user=User.objects.get(channel=slug)
-		if user is not None:
-			return Response({'phone':user.phone})
+		if user is not None and user!=request.user:
+			serializer=UserSerializer(user)
+			return Response(serializer.data)
+
 
 
 		

@@ -238,8 +238,7 @@ class ResetPassword(ModelViewSet):
 			return Response({'message':'donnee bien modifiee'})
 
 
-#ENVOI DIRECT Mobile
-#Verification list contact mobile
+#Verification de l existence du user 
 class VerifyContact(APIView):
 	def post(self,request):
 		phone=request.data.get("num")
@@ -247,10 +246,10 @@ class VerifyContact(APIView):
 		if verif >0:
 			user=User.objects.get(phone=phone)
 			if user!=request.user:
-				return Response({'succes':'verification'})
+				return Response({'id':user.id})
 
 
-#Recuperation de l utilisateur apres verification
+#Recuperation de l utilisateur apres verification mobile
 class GetUserFromPhone(APIView):
 	def post(self,request):
 		phone=request.data.get('phone')
@@ -259,8 +258,15 @@ class GetUserFromPhone(APIView):
 			serializer=UserSerializer(user)
 			return Response(serializer.data)
 	
-
-
+#Rcuperation user sur web
+class GetUserFromId(APIView):
+	def post(self,request):
+		id=request.data.get('id')
+		user=User.objects.get(id=id,active=True,document_verif=True)
+		if user is not None:
+			serializer=UserSerializer(user)
+			return Response(serializer.data)
+	
 	
 
 class Authent(APIView):
@@ -289,15 +295,28 @@ class VerificationCredentialsEnvoi(APIView):
 			phone_receveur=data['phone']
 			getcontext().prec=10 
 			somme=Decimal(data['somme'])
+			nature=data['nature']
 			if somme>0:
-				frais=somme/Decimal(100)
-				debit=somme+frais
-				if phone_receveur!=envoyeur.phone:
-					if envoyeur.solde>=debit:
+				if nature=="non inclus":
+					frais=somme/Decimal(100)
+					debit=somme+frais
+					if phone_receveur!=envoyeur.phone and  envoyeur.solde>=debit:
 						receveur=User.objects.get(phone=phone_receveur,active=True,document_verif=True)
 						trans=VerificationTransaction.objects.create(user=envoyeur,somme=somme,
-						commission=frais,phone_destinataire=phone_receveur,nature_transaction="envoi direct",total=debit)
+							commission=frais,phone_destinataire=phone_receveur,nature_transaction="envoi direct",total=debit)
 						return Response({'id':trans.id,'nom':receveur.nom,'prenom':receveur.prenom})
+				if nature=="inclus":
+					commissionexces=somme/Decimal(100)
+					montant=somme-commissionexces
+					frais=montant/Decimal(100)
+					debit=montant+frais
+					if phone_receveur!=envoyeur.phone and envoyeur.solde>=debit:
+						receveur=User.objects.get(phone=phone_receveur,active=True,document_verif=True)
+						trans=VerificationTransaction.objects.create(user=envoyeur,somme=montant,
+							commission=frais,phone_destinataire=phone_receveur,nature_transaction="envoi direct",total=debit)
+						return Response({'id':trans.id,'nom':receveur.nom,'prenom':receveur.prenom})
+					
+				
 						
 							#if envoyeur.business==True or receveur.business==True or envoyeur.professionnel==True or receveur.professionnel==True:
 '''else:
@@ -363,6 +382,17 @@ class RecuDirect(APIView):
 		return Response({'envoi':serializer.data,'receveur':receveurserializer.data})
 
 
+#Envoi qrcode verif
+class VerificationClientQrCodePay(APIView):
+	def post(self,request):
+		slug=request.data.get("slug")
+		user=User.objects.get(channel=slug)
+		if user is not None:
+			return Response({'phone':user.phone})
+
+
+		
+
 
 #Verification somme lors de l envoi par code
 class VerificationSomme(APIView):
@@ -372,17 +402,33 @@ class VerificationSomme(APIView):
 		if envoyeur.active==True and envoyeur.document_verif==True:
 			getcontext().prec=10
 			somme=Decimal(data['somme'])
+			nature=data['nature']
 			if somme>0:
-				frais=somme/Decimal(100)
-				debit=somme+frais
-				phone_receveur=data['phone']
-				nom=data['nom']
-				if envoyeur.solde>=debit:
-					trans=VerificationTransaction.objects.create(user=envoyeur,somme=somme,
-						commission=frais,phone_destinataire=phone_receveur,
-						nature_transaction="envoi via code",
-						nom_complet_destinataire=nom,total=debit)
-					return Response({'id':trans.id,'nom':trans.nom_complet_destinataire})
+				if nature=="non inclus":
+					frais=somme/Decimal(100)
+					debit=somme+frais
+					phone_receveur=data['phone']
+					nom=data['nom']
+					if envoyeur.solde>=debit:
+						trans=VerificationTransaction.objects.create(user=envoyeur,somme=somme,
+							commission=frais,phone_destinataire=phone_receveur,
+							nature_transaction="envoi via code",
+							nom_complet_destinataire=nom,total=debit)
+						return Response({'id':trans.id,'nom':trans.nom_complet_destinataire})
+				else:
+					commissionexces=somme/Decimal(100)
+					montant=somme-commissionexces
+					frais=montant/Decimal(100)
+					debit=frais+montant
+					phone_receveur=data['phone']
+					nom=data['nom']
+					if envoyeur.solde>=debit:
+						trans=VerificationTransaction.objects.create(user=envoyeur,somme=montant,
+							commission=frais,phone_destinataire=phone_receveur,
+							nature_transaction="envoi via code",
+							nom_complet_destinataire=nom,total=debit)
+						return Response({'id':trans.id,'nom':trans.nom_complet_destinataire})
+
 
 class GetRansactionCode(APIView):
 	def post(self,request):

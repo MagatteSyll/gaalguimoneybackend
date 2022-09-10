@@ -1,6 +1,7 @@
 from django.urls import path,include
 from .views import*
 from rest_framework.routers import SimpleRouter
+from fcm_django.api.rest_framework import FCMDeviceAuthorizedViewSet
 
 
 router=SimpleRouter()
@@ -52,7 +53,7 @@ urlpatterns=[
     path("getuserweb/",GetUserFromId.as_view()),
     path('getuserqrcode/',GetUserQrCode.as_view()),
     path('qrcodeenvoiverification/',VerificationClientQrCodePay.as_view()),
-
+    path('getuserdevice/',FCMDeviceAuthorizedViewSet.as_view({'post': 'create'}))
     
     
 

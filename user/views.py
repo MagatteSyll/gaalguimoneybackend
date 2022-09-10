@@ -125,21 +125,9 @@ def payementprofessionnel(user_id,somme,name):
 
 def index(request):
 	devices = FCMDevice.objects.filter(user__phone='+221772058140')
-	#for device in devices:
-	#device.send_message(Message(data={"titre": "Le titre","body":"le body"}))
-	responseData = sms.send_message(
-		{
-        "from": "GaalguiMoney",
-        "to": "79649642176",
-        "text": "Le code de confirmation de votre numero est"
-        }
-        )
-	if responseData["messages"][0]["status"] == "0":
-		print('message envoye')
-	else:
-		print(f"Message failed with error: {responseData['messages'][0]['error-text']}")
+	for device in devices:
+		device.send_message(Message(data={"titre": "Le titre","body":"le body"}))
 		
-	
 	return JsonResponse({'status':'OK'})
 	
 

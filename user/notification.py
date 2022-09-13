@@ -65,7 +65,7 @@ def EnvoiDirectNotif(envoyeur,receveur,somme,frais,employe,total):
     Messages.objects.create(user=envoyeur,message=messageSend,nature_transaction='envoi direct',montant=somme,
         commission=frais,total=total,beneficiaire=beneficiaire,should_notify=False,is_trans=True)
    # NotificationAdmina.objects.create(employe=employe,somme=frais,nature='envoi direct')
-    notif(beneficiaire,"Reception GaalguiMoney",messageGet)
+    notif(receveur,"Reception GaalguiMoney",messageGet)
 
 
 def EnvoiViaCodeNotif(envoyeur,somme,code,frais,receveur,admina,total):

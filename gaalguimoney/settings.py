@@ -16,7 +16,7 @@ from datetime import timedelta
 import dj_database_url
 from firebase_admin import initialize_app
 
-os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = "service-account-file.json"
+os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = "service-account-file.json" 
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -223,6 +223,8 @@ CELERY_TASK_SERIALIZER= 'json'
 CELERY_TIMEZONE='Asia/Yekaterinburg'
 cELERY_RESULT_BACKEND='django-db'
 
+
+FIREBASE_APP = initialize_app()
 FCM_DJANGO_SETTINGS = {
      # default: _('FCM Django')
     "APP_VERBOSE_NAME": "gaalguishop",

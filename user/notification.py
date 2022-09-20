@@ -55,21 +55,21 @@ def RetraitNotif(beneficiaire,somme):
     Messages.objects.create(user=beneficiaire,message=message,nature_transaction='retrait',montant=somme,should_notify=True,is_trans=True)
     notif(beneficiaire,"Retrait GaalguiMoney",message)
 
-def EnvoiDirectNotif(envoyeur,receveur,somme,frais,employe,total):
-    messageSend="Envoi de " + " " + str(somme,) + " " +  " CFA a "+ " " + receveur.prenom + " " +  receveur.nom + " " + ",solde actuel:"+ " " + str(decimal.Decimal(envoyeur.solde))+" "+"CFA"
-    messageGet=envoyeur.prenom + " " + envoyeur.nom + " " + "vous a envoyé" + " "  + str(somme,) + " " +  " francs ,solde actuel:"+ " " +  str(decimal.Decimal(receveur.solde))+" "+"CFA"
+def EnvoiDirectNotif(envoyeur,receveur,somme,frais,employe,total,sommecoteclient):
+    messageSend="Envoi de " + " " + str(sommecoteclient) + " " +  envoyeur.pays.monaie_associe.monaie+ " " + "a"+" "+  receveur.prenom + " " +  receveur.nom + " " + ",solde actuel:"+ " " + str(decimal.Decimal(envoyeur.solde))+" "+ envoveur.pays.monaie_associe.monaie
+    messageGet= "Reception de " + " "  + str(somme) + " " + receveur.pays.monaie_associe.monaie  + " " + " de "+" " + envoyeur.prenom +" "+ envoyeur.nom +" "+" solde actuel"+" " +  str(decimal.Decimal(receveur.solde))+" "+receveur.pays.monaie_associe.monaie
     beneficiaire=receveur.prenom+" "+ receveur.nom
     donnateur=envoyeur.prenom+" "+ envoyeur.nom
-    Messages.objects.create(user=receveur,message=messageGet,nature_transaction='reception',montant=somme,
+    Messages.objects.create(user=receveur,message=messageGet,nature_transaction='reception',montant=sommecoteclient,
     donnateur=donnateur,should_notify=True,is_trans=True)
-    Messages.objects.create(user=envoyeur,message=messageSend,nature_transaction='envoi direct',montant=somme,
-        commission=frais,total=total,beneficiaire=beneficiaire,should_notify=False,is_trans=True)
+    Messages.objects.create(user=envoyeur,message=messageSend,nature_transaction='envoi direct',
+        montant=somme,commission=frais,total=total,beneficiaire=beneficiaire,should_notify=False,is_trans=True)
    # NotificationAdmina.objects.create(employe=employe,somme=frais,nature='envoi direct')
     notif(receveur,"Reception GaalguiMoney",messageGet)
 
 
-def EnvoiViaCodeNotif(envoyeur,somme,code,frais,receveur,admina,total):
-    message="Envoi de " + " " + str(somme) +" "+ " francs par code "+ " " +str(code)+ " " +",solde actuel:"+ " "+ str(decimal.Decimal(envoyeur.solde))+" "+"CFA"
+def EnvoiViaCodeNotif(envoyeur,trans,code,):
+    message="Envoi de " + " " + str(trans.sommecoteclient) +" "+ trans.user.pays.monaie_associe.monaie+ " " +"par code"+" "+str(code)+ " " +",solde actuel:"+ " "+ str(decimal.Decimal(envoyeur.solde))+" "+ trans.user.pays.monaie_associe.monaie
     Messages.objects.create(user=envoyeur,message=message,nature_transaction='envoi via code',montant=somme,
         code=code,commission=frais,beneficiaire=receveur,total=total,should_notify=False,is_trans=True)
     #NotificationAdmina.objects.create(user=admina,somme=frais,nature="envoi via code")

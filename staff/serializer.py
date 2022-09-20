@@ -1,6 +1,6 @@
 from rest_framework import serializers
 from .models import*
-from user.serializer import EmployeSerializer
+from user.serializer import EmployeSerializer,ServiceSerializer
 
 
 class NotificationStaffSerializer(serializers.ModelSerializer):
@@ -11,6 +11,16 @@ class NotificationStaffSerializer(serializers.ModelSerializer):
 
 	def get_employe(self,obj):
 		return EmployeSerializer(obj.employe).data
+
+
+class NotificationServiceSerializer(serializers.ModelSerializer):
+	service=serializers.SerializerMethodField()
+	class Meta:
+		model=NotificationService
+		fields="__all__"
+
+	def get_service(self,obj):
+		return ServiceSerializer(obj.service).data
 
 
 

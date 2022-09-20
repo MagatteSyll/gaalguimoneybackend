@@ -11,7 +11,7 @@ from .notification import EnvoiDirectNotif,EnvoiViaCodeNotif ,PayementEgaalgui,C
 from rest_framework import filters
 #import requests
 from decimal import *
-from rest_framework.viewsets import ModelViewSet
+from rest_framework.viewsets import ModelViewSet 
 from rest_framework.decorators import action
 #from .payement import foo
 from rest_framework_simplejwt.views import TokenObtainPairView,TokenRefreshView
@@ -280,39 +280,79 @@ class GetUser(APIView):
 class VerificationCredentialsEnvoi(APIView):
 	def post(self,request):
 		envoyeur=request.user
-		if envoyeur.active==True and envoyeur.document_verif==True:
+		if envoyeur.active==True and envoyeur.document_verif==True :
 			data=request.data
 			phone_receveur=data['phone']
-			getcontext().prec=10 
-			somme=Decimal(data['somme'])
-			nature=data['nature']
-			if somme>0:
-				if nature=="non inclus":
-					frais=somme/Decimal(100)
-					debit=somme+frais
-					if phone_receveur!=envoyeur.phone and  envoyeur.solde>=debit:
-						receveur=User.objects.get(phone=phone_receveur,active=True,document_verif=True)
-						trans=VerificationTransaction.objects.create(user=envoyeur,somme=somme,
-							commission=frais,phone_destinataire=phone_receveur,nature_transaction="envoi direct",total=debit)
-						return Response({'id':trans.id,'nom':receveur.nom,'prenom':receveur.prenom})
-				if nature=="inclus":
-					commissionexces=somme/Decimal(100)
-					montant=somme-commissionexces
-					frais=montant/Decimal(100)
-					debit=montant+frais
-					if phone_receveur!=envoyeur.phone and envoyeur.solde>=debit:
-						receveur=User.objects.get(phone=phone_receveur,active=True,document_verif=True)
-						trans=VerificationTransaction.objects.create(user=envoyeur,somme=montant,
-							commission=frais,phone_destinataire=phone_receveur,nature_transaction="envoi direct",total=debit)
-						return Response({'id':trans.id,'nom':receveur.nom,'prenom':receveur.prenom})
-					
-				
+			receveur=User.objects.get(phone=phone_receveur,active=True,document_verif=True)
+			if receveur!=envoyeur:
+				getcontext().prec=10 
+				somme=Decimal(data['somme'])
+				nature=data['nature']
+				if somme>0:
+					if nature=="non inclus":
+						if envoyeur.pays.continent==receveur.pays.continent:
+							if envoyeur.pays==receveur.pays:
+								frais=somme/Decimal(100)
+								debit=somme+frais
+								if envoyeur.solde>=debit:
+									trans=VerificationTransaction.objects.create(user=envoyeur,somme=somme,sommecoteclient=somme,
+										commission=frais,phone_destinataire=phone_receveur,nature_transaction="envoi direct",total=debit)
+									return Response({'id':trans.id,'nom':receveur.nom,'prenom':receveur.prenom})
+							else:
+								sommecfa=somme*envoyeur.pays.monaie_associe.valeur_CFA
+								sommeconverti=sommecfa/receveur.pays.monaie_associe.valeur_CFA
+								frais=somme*2/Decimal(100)
+								debit=somme+frais
+								if envoyeur.solde>=debit:
+									trans=VerificationTransaction.objects.create(user=envoyeur,somme=sommeconverti,sommecoteclient=somme,
+										commission=frais,phone_destinataire=phone_receveur,nature_transaction="envoi direct",total=debit)
+									return Response({'id':trans.id,'nom':receveur.nom,'prenom':receveur.prenom})
+						else:
+							sommecfa=somme*envoyeur.pays.monaie_associe.valeur_CFA
+							sommeconverti=sommecfa/receveur.pays.monaie_associe.valeur_CFA
+							frais=somme*3/Decimal(100)
+							debit=somme+frais
+							if envoyeur.solde>=debit:
+								trans=VerificationTransaction.objects.create(user=envoyeur,somme=sommeconverti,
+									sommecoteclient=somme,
+									commission=frais,phone_destinataire=phone_receveur,nature_transaction="envoi direct",total=debit)
+								return Response({'id':trans.id,'nom':receveur.nom,'prenom':receveur.prenom})
+					if nature=="inclus":
+						if envoyeur.pays.continent==receveur.pays.continent:
+							if envoyeur.pays==receveur.pays:
+								commissionexces=somme/Decimal(100)
+								montant=somme-commissionexces
+								frais=montant/Decimal(100)
+								debit=montant+frais
+								if envoyeur.solde>=debit:
+									trans=VerificationTransaction.objects.create(user=envoyeur,somme=montant,sommecoteclient=montant,
+										commission=frais,phone_destinataire=phone_receveur,nature_transaction="envoi direct",total=debit)
+									return Response({'id':trans.id,'nom':receveur.nom,'prenom':receveur.prenom})
+							else:
+								commissionexces=somme*2/Decimal(100)
+								montant=somme-commissionexces
+								frais=montant*2/Decimal(100)
+								debit=montant+frais
+								sommecfa=montant*envoyeur.pays.monaie_associe.valeur_CFA
+								sommeconverti=sommecfa/receveur.pays.monaie_associe.valeur_CFA
+								if envoyeur.solde>=debit:
+									trans=VerificationTransaction.objects.create(user=envoyeur,somme=sommeconverti,sommecoteclient=montant,
+										commission=frais,phone_destinataire=phone_receveur,nature_transaction="envoi direct",total=debit)
+									return Response({'id':trans.id,'nom':receveur.nom,'prenom':receveur.prenom})
+						else:
+							commissionexces=somme*3/Decimal(100)
+							montant=somme-commissionexces
+							frais=montant*3/Decimal(100)
+							debit=montant+frais
+							sommecfa=montant*envoyeur.pays.monaie_associe.valeur_CFA
+							sommeconverti=sommecfa/receveur.pays.monaie_associe.valeur_CFA
+							if envoyeur.solde>=debit:
+								trans=VerificationTransaction.objects.create(user=envoyeur,somme=sommeconverti,sommecoteclient=montant,
+									commission=frais,phone_destinataire=phone_receveur,nature_transaction="envoi direct",total=debit)
+								return Response({'id':trans.id,'nom':receveur.nom,'prenom':receveur.prenom})
+
+												
 						
-							#if envoyeur.business==True or receveur.business==True or envoyeur.professionnel==True or receveur.professionnel==True:
-'''else:
-	trans=VerificationTransaction.objects.create(user=envoyeur,somme=somme,
-		commission=frais,phone_destinataire=phone_receveur,nature_transaction="envoi direct",total=debit)
-	return Response({'id':trans.id,'nom':receveur.nom,'prenom':receveur.prenom})'''
 
 #Transaction 
 class GetRansactionEnvoiDirect(APIView):
@@ -343,11 +383,12 @@ class EnvoyerDirect(ModelViewSet):
 				envoyeur.save()
 				receveur.solde+=trans.somme
 				receveur.save()
-				admina.solde+=trans.commission
-				admina.save()
-				EnvoiDirectNotif(envoyeur,receveur,trans.somme,trans.commission,employe,trans.total)
+				commission=trans.commission*admina.pays.monaie_associe.valeur_CFA
+				admina.solde+=commission
+				admina.save() 
+				EnvoiDirectNotif(envoyeur,receveur,trans.somme,trans.commission,employe,trans.total,trans.sommecoteclient)
 				env=Envoi.objects.create(envoyeur=envoyeur,phone_receveur=receveur.phone,somme=trans.somme
-					,commission=trans.commission,relever=False,total=trans.total)
+					,commission=trans.commission,relever=False,total=trans.total,somecoteclient=trans.sommecoteclient)
 				trans.delete()
 				return Response({'id':env.id,'nature':"envoi direct"})
 
@@ -391,35 +432,98 @@ class VerificationSomme(APIView):
 	def post(self,request):
 		envoyeur=request.user
 		data=request.data
-		if envoyeur.active==True and envoyeur.document_verif==True:
+		if envoyeur.active==True and envoyeur.document_verif==True and envoyeur.business==False:
 			getcontext().prec=10
 			somme=Decimal(data['somme'])
 			nature=data['nature']
+			pays_id=data['pays_id']
+			pays=Pays.objects.get(id=pays_id)
 			if somme>0:
 				if nature=="non inclus":
-					frais=somme/Decimal(100)
-					debit=somme+frais
-					phone_receveur=data['phone']
-					nom=data['nom']
-					if envoyeur.solde>=debit:
-						trans=VerificationTransaction.objects.create(user=envoyeur,somme=somme,
-							commission=frais,phone_destinataire=phone_receveur,
-							nature_transaction="envoi via code",
-							nom_complet_destinataire=nom,total=debit)
-						return Response({'id':trans.id,'nom':trans.nom_complet_destinataire})
+					if envoyeur.pays.continent==pays.continent:
+						if envoyeur.pays==pays:
+							frais=somme/Decimal(100)
+							debit=somme+frais
+							phone_receveur=data['phone']
+							nom=data['nom']
+							if envoyeur.solde>=debit:
+								trans=VerificationTransaction.objects.create(user=envoyeur,somme=somme,
+									commission=frais,phone_destinataire=phone_receveur,
+									nature_transaction="envoi via code",somecoteclient=somme,
+									nom_complet_destinataire=nom,total=debit,pays_reception=pays,)
+								return Response({'id':trans.id,'nom':trans.nom_complet_destinataire})
+						else:
+							frais=somme*2/Decimal(100)
+							debit=somme+frais
+							phone_receveur=data['phone']
+							nom=data['nom']
+							sommecfa=somme*envoyeur.pays.monaie_associe.valeur_CFA
+							sommeconverti=sommecfa/pays.monaie_associe.valeur_CFA
+							if envoyeur.solde>=debit:
+								trans=VerificationTransaction.objects.create(user=envoyeur,somme=sommeconverti,
+									commission=frais,phone_destinataire=phone_receveur,
+									nature_transaction="envoi via code",somecoteclient=somme,
+									nom_complet_destinataire=nom,total=debit,pays_reception=pays,)
+								return Response({'id':trans.id,'nom':trans.nom_complet_destinataire})
+					else:
+						frais=somme*3/Decimal(100)
+						debit=somme+frais
+						phone_receveur=data['phone']
+						nom=data['nom']
+						sommecfa=somme*envoyeur.pays.monaie_associe.valeur_CFA
+						sommeconverti=sommecfa/pays.monaie_associe.valeur_CFA
+						if envoyeur.solde>=debit:
+							trans=VerificationTransaction.objects.create(user=envoyeur,somme=sommeconverti,
+								commission=frais,phone_destinataire=phone_receveur,
+								nature_transaction="envoi via code",somecoteclient=somme,
+								nom_complet_destinataire=nom,total=debit,pays_reception=pays,)
+							return Response({'id':trans.id,'nom':trans.nom_complet_destinataire})
 				else:
-					commissionexces=somme/Decimal(100)
-					montant=somme-commissionexces
-					frais=montant/Decimal(100)
-					debit=frais+montant
-					phone_receveur=data['phone']
-					nom=data['nom']
-					if envoyeur.solde>=debit:
-						trans=VerificationTransaction.objects.create(user=envoyeur,somme=montant,
-							commission=frais,phone_destinataire=phone_receveur,
-							nature_transaction="envoi via code",
-							nom_complet_destinataire=nom,total=debit)
-						return Response({'id':trans.id,'nom':trans.nom_complet_destinataire})
+					if envoyeur.pays.continent==pays.continent:
+						if envoyeur.pays==pays:
+							commissionexces=somme/Decimal(100)
+							montant=somme-commissionexces
+							frais=montant/Decimal(100)
+							debit=frais+montant
+							phone_receveur=data['phone']
+							nom=data['nom']
+							if envoyeur.solde>=debit:
+								trans=VerificationTransaction.objects.create(user=envoyeur,somme=montant,
+									commission=frais,phone_destinataire=phone_receveur,
+									nature_transaction="envoi via code",somecoteclient=montant,
+									nom_complet_destinataire=nom,total=debit,pays_reception=pays,)
+								return Response({'id':trans.id,'nom':trans.nom_complet_destinataire})
+						else:
+							commissionexces=somme*2/Decimal(100)
+							montant=somme-commissionexces
+							frais=montant*2/Decimal(100)
+							debit=frais+montant
+							sommecfa=montant*envoyeur.pays.monaie_associe.valeur_CFA
+							sommeconverti=sommecfa/pays.monaie_associe.valeur_CFA
+							phone_receveur=data['phone']
+							nom=data['nom']
+							if envoyeur.solde>=debit:
+								trans=VerificationTransaction.objects.create(user=envoyeur,somme=sommeconverti,
+									commission=frais,phone_destinataire=phone_receveur,
+									nature_transaction="envoi via code",somecoteclient=montant,
+									nom_complet_destinataire=nom,total=debit,pays_reception=pays,)
+								return Response({'id':trans.id,'nom':trans.nom_complet_destinataire})
+					else:
+						commissionexces=somme*3/Decimal(100)
+						montant=somme-commissionexces
+						frais=montant*3/Decimal(100)
+						debit=frais+montant
+						sommecfa=montant*envoyeur.pays.monaie_associe.valeur_CFA
+						sommeconverti=sommecfa/pays.monaie_associe.valeur_CFA
+						phone_receveur=data['phone']
+						nom=data['nom']
+						if envoyeur.solde>=debit:
+							trans=VerificationTransaction.objects.create(user=envoyeur,somme=sommeconverti,
+								commission=frais,phone_destinataire=phone_receveur,
+								nature_transaction="envoi via code",somecoteclient=montant,
+								pays_reception=pays,
+								nom_complet_destinataire=nom,total=debit)
+							return Response({'id':trans.id,'nom':trans.nom_complet_destinataire})
 
 
 class GetRansactionCode(APIView):
@@ -434,12 +538,11 @@ class GetRansactionCode(APIView):
 class EnvoiViaCodeDirect(ModelViewSet):
 	queryset =VerificationTransaction.objects.all()
 	serializer_class=VerificationTransactionSerializer
-
 	@action(methods=["put"], detail=False, url_path='envoyerviacodedirectement')
 	def envoi_code(self,request,*args,**kwargs):
 		data=request.data
 		client=request.user
-		if client.active==True and client.document_verif==True:
+		if client.active==True and client.document_verif==True and  client.business==False:
 			id=data['id']
 			trans=VerificationTransaction.objects.get(id=id,nature_transaction="envoi via code",user=request.user)
 			code=randint(100000000,999999999)
@@ -447,13 +550,15 @@ class EnvoiViaCodeDirect(ModelViewSet):
 			if client.solde>=trans.total:
 				viacod=ViaCode.objects.create(code=code,
 					Nom_complet_du_receveur=trans.nom_complet_destinataire ,client=client
-					,somme=trans.somme,commission=trans.commission,active=True,retirer=False,total=trans.total)
+					,somme=trans.somme,commission=trans.commission,active=True,retirer=False,
+					total=trans.total,pays_reception=trans.pays_reception)
 				client.solde-=trans.total
 				client.save()
-				admina.solde+=trans.commission
+				commission=trans.commission*admina.pays.monaie_associe.valeur_CFA
+				admina.solde+=commission
 				admina.save()
-				EnvoiViaCodeNotif(client,trans.somme,
-					code,trans.commission,trans.nom_complet_destinataire,admina,trans.total)
+				EnvoiViaCodeNotif(client,trans,
+					code,)
 				trans.delete()
 				return Response({'id':viacod.id,'nature':"envoi via code"})
 

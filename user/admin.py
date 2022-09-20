@@ -161,6 +161,36 @@ class PhoneConfirmationInscriptionAdmin(admin.ModelAdmin):
 		model=PhoneConfirmation
 
 
+class ServiceAdmin(admin.ModelAdmin):
+	list_display=['get_user','adress','contact']
+	search_fields=['adress','contact']
+	list_display_links=['get_user']
+	class Meta:
+		model=Service
+
+	@admin.display(empty_value='???')
+	def get_user(self, obj):
+		return obj.user.prenom+" "+obj.user.nom
+
+class ContinentAdmin(admin.ModelAdmin):
+	list_display=['continent']
+	search_fields=['continent',]
+	list_display_links=['continent']
+	class Meta:
+		model=Continent
+
+
+class MonaieAdmin(admin.ModelAdmin):
+	list_display=['monaie','valeur_CFA']
+	search_fields=['monaie',]
+	list_display_links=['monaie']
+	class Meta:
+		model=Monaie
+
+
+
+
+
 admin.site.register(User,UserAdmin)
 admin.site.register(Envoi,EnvoiAdmin)
 admin.site.register(Depot,DepotAdmin)
@@ -176,6 +206,9 @@ admin.site.register(Pays)
 admin.site.register(PointAcces,AccesAdmin)
 admin.site.register(AnnulationGaalguiShop,AnnulationGaalguiShopAdmin)
 admin.site.register(QrCodeClient,QrCodeClientAdmin)
+admin.site.register(Service,ServiceAdmin)
+admin.site.register(Continent,ContinentAdmin)
+admin.site.register(Monaie,MonaieAdmin)
 
 
 

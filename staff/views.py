@@ -17,7 +17,7 @@ from .notif import*
 from rest_framework.viewsets import ModelViewSet 
 from rest_framework.decorators import action
 from datetime import datetime, timedelta
-from django.utils import timezone
+from django.utils import timezone 
 import time, threading
 import json
 from .serializer import* 
@@ -42,6 +42,8 @@ class CommissionEnvoiCodeInclus(APIView):
 	def post(self,request):
 		employe=Employe.objects.get(user=request.user,active=True)
 		if employe is not None:
+			monaie=employe.point_acces.pays.monaie_associe
+			#if monaie==
 			data=request.data
 			getcontext().prec=10
 			somme=Decimal(data['somme'])
@@ -102,9 +104,19 @@ class GetClientDepot(APIView):
 				getcontext().prec=10
 				somme=Decimal(request.data.get('somme'))
 				if somme>0:
-					trans=VerificationTransaction.objects.create(user=client,somme=somme,commission=0,
-						nature_transaction="depot",employe=employe)
-					return Response({'depot':trans.id,'nature':trans.nature_transaction})
+					devise=employe.point_acces.region.pays.monaie_associe
+					deviseclient=client.pays.monaie_associe
+					if devise==deviseclient:
+						trans=VerificationTransaction.objects.create(user=client,somme=somme,commission=0,
+							nature_transaction="depot",employe=employe)
+						return Response({'depot':trans.id,'nature':trans.nature_transaction})
+					else:
+						sommecfa=somme*devise.valeur_CFA
+						sommeconverti=sommecfa/deviseclient.valeur_CFA
+						trans=VerificationTransaction.objects.create(user=client,somme=sommeconverti,commission=0,
+							nature_transaction="depot",employe=employe)
+						return Response({'depot':trans.id,'nature':trans.nature_transaction})
+
 
 #Recu Depot
 class RecuDepot(APIView):
@@ -127,12 +139,24 @@ class GetClientRetrait(APIView):
 		if employe is not None:
 			phone=request.data.get('phone')
 			somme=Decimal(request.data.get('somme'))
-			if somme>0:
-				client=User.objects.get(phone=phone,active=True,document_verif=True)
-				if client.solde>=somme:
+			client=User.objects.get(phone=phone,active=True,document_verif=True)
+			if somme>0 and client.solde>=somme:
+				devise=employe.point_acces.region.pays.monaie_associe
+				deviseclient=client.pays.monaie_associe
+				if devise==deviseclient:
 					trans=VerificationTransaction.objects.create(user=client,somme=somme,
+						sommecoteclient=somme,
 						commission=0,employe=employe,nature_transaction="retrait")
 					return Response({'retrait':trans.id,'nature':trans.nature_transaction})
+				else:
+					sommecfa=somme*devise.valeur_CFA
+					sommeconverti=sommecfa/deviseclient.valeur_CFA
+					trans=VerificationTransaction.objects.create(user=client,somme=sommeconverti,
+						sommecoteclient=somme,
+						commission=0,employe=employe,nature_transaction="retrait")
+					return Response({'retrait':trans.id,'nature':trans.nature_transaction})
+
+
 #Recu Retrait
 class RecuRetrait(APIView):
 	permission_classes = [permissions.IsAdminUser] 
@@ -202,7 +226,7 @@ class LesTransactions(ModelViewSet):
 					user.solde+=trans.somme 
 					user.save()
 					dep=Depot.objects.create(depositaire=user,somme=trans.somme,employe=employe,relever=False)
-					action='Depot de ' +" "+ str(trans.somme) +" "+ "sur le compte numero"+ " "+ str(user.id)
+					action='Depot de ' +" "+ str(trans.sommecoteclient) +" "+ "sur le compte numero"+ " "+ str(user.id)
 					ActionStaff.objects.create(action=action,employe=employe,nature="depot",montant_rentrant=trans.somme,
 						montant_entreprise=0)
 					depotNotif(user,trans.somme)
@@ -297,6 +321,7 @@ class ActivationDuClient(APIView):
 	def post(self,request):
 		employe=Employe.objects.get(user=request.user,active=True)
 		if employe is not None:
+			pays=employe.point_acces.region.pays
 			id=request.data.get('id')
 			user=User.objects.get(id=id,active=True,document_verif=False)
 			nature=request.data.get('nature')
@@ -304,6 +329,7 @@ class ActivationDuClient(APIView):
 			user.nature_document=nature
 			user.numero_document=numero
 			user.document_verif=True
+			user.pays=pays
 			user.save()
 			action='Activation de l utilisateur numero '+ " "+ str(user.id)
 			ActionStaff.objects.create(action=action,employe=employe,nature="activation",montant_rentrant=0,
@@ -953,6 +979,301 @@ class ReleveSuspensionPayementPeriodic(APIView):
 			period.save()
 			return Response({'success':'relever'})'''
 
+class VerificationDepotService(APIView):
+	def post(self,request):
+		user=request.user
+		if user.business:
+			service=Service.objects.get(user=user,active=True)
+			phone=request.data.get('phone')
+			client=User.objects.get(phone=phone,active=True,document_verif=True)
+			if client is not None:
+				getcontext().prec=10
+				somme=Decimal(request.data.get('somme'))
+				if somme>0 and somme<=1000000 and user.solde>=somme and client!=user:
+					if user.pays.monaie_associe==client.pays.monaie_associe:
+						trans=VerificationTransaction.objects.create(user=client,somme=somme,commission=0,
+							nature_transaction="depot",service=service,sommecoteclient=somme)
+						return Response({'depot':trans.id,'nature':trans.nature_transaction})
+					else:
+						sommecfa=somme*user.pays.monaie_associe.valeur_CFA
+						sommeconverti=sommecfa/client.pays.monaie_associe.valeur_CFA
+						trans=VerificationTransaction.objects.create(user=client,somme=somme,commission=0,
+							nature_transaction="depot",service=service,sommecoteclient=sommeconverti)
+						return Response({'depot':trans.id,'nature':trans.nature_transaction})
+
+
+
+
+
+
+## 3 Retrait simple 
+#Identification du client lors du retrait
+class VerificatioRetraitService(APIView):
+	def post(self,request):
+		user=request.user
+		if user.business:
+			service=Service.objects.get(user=user,active=True)
+			if service is not None:
+				phone=request.data.get('phone')
+				somme=Decimal(request.data.get('somme'))
+				if somme>0 and somme<1000000:
+					client=User.objects.get(phone=phone,active=True,document_verif=True)
+					if client.solde>=somme:
+						trans=VerificationTransaction.objects.create(user=client,somme=somme,
+						commission=0,service=service,nature_transaction="retrait")
+						return Response({'retrait':trans.id,'nature':trans.nature_transaction})
+
+#Verification code lors du retrait
+class VerificationRetraitViaCodeService(APIView):
+	def post(self,request):
+		user=request.user
+		if user.business:
+			service=Service.objects.get(user=user,active=True)
+			if service is not None:
+				data=request.data
+				code=int(data['code'])
+				transfert=ViaCode.objects.get(code=code,active=True)
+				if transfert is not None:
+					trans=VerificationTransaction.objects.create(
+						nom_complet_destinataire=transfert.Nom_complet_du_receveur,
+						nom_complet_client=transfert.Nom_complet_de_l_envoyeur,somme=transfert.somme,
+						commission=0,employe=employe,nature_transaction="retrait par code",code=transfert.code)
+					return Response({'id':trans.id,'nature':trans.nature_transaction})
+
+class VerificationEnvoiCodeService(APIView):
+	def post(self,request):
+		user=request.user
+		service=Service.objects.get(user=request.user,active=True)
+		if service is not None:
+			data=request.data
+			getcontext().prec=10
+			somme=Decimal(data['somme'])
+			nature=data['nature']
+			if somme>0:
+				if nature=="inclus":
+					commission=somme/Decimal(100)
+					montant=somme-commission 
+					commission_envoi=montant/Decimal(100)
+					total=montant+commission_envoi
+					reste=somme-total
+					if user.solde>=total and total<=1000000:
+						trans=VerificationTransaction.objects.create(
+							nom_complet_destinataire=data['receveur'],nom_complet_client=data['envoyeur'],somme=montant,
+							commission=commission_envoi,nature_transaction="envoi via code",
+							phone_destinataire=data['phone'],commission_incluse=True,
+							reste=reste,service=service)
+						return Response({'id':trans.id,'nature':trans.nature_transaction})
+				if nature=="non inclus":
+					commission=somme/Decimal(100)
+					total=commission+somme
+					if user.solde>=total and total<=1000000:
+						trans=VerificationTransaction.objects.create(
+							nom_complet_destinataire=data['receveur'],nom_complet_client=data['envoyeur'],
+							somme=somme,
+							commission=commission,nature_transaction="envoi via code",
+							phone_destinataire=data['phone'],commission_incluse=False,
+							reste=0,service=service)
+						return Response({'id':trans.id,'nature':trans.nature_transaction})
+
+
+#Envoi direct via service
+class VerificationEnvoiCompteServiceEnvoi(APIView):
+	def post(self,request):
+		user=request.user
+		if user.business:
+			service=Service.objects.get(user=user,active=True)
+			if service is not None:
+				data=request.data
+				getcontext().prec=10
+				somme=Decimal(data['somme'])
+				phone=data['phone']
+				client=User.objects.get(phone=phone,active=True,document_verif=True)
+				if nature=="inclus":
+					commission=somme/Decimal(100)
+					montant=somme-commission 
+					commission_envoi=montant/Decimal(100)
+					total=montant+commission_envoi
+					reste=somme-total
+					if user.solde>=total and total<=1000000:
+						trans=VerificationTransaction.objects.create(
+							user=client,somme=montant,commission=commission_envoi,
+							nature_transaction="envoi direct",reste=reste,service=service)
+					return Response({'id':trans.id,'nature':trans.nature_transaction})
+				if nature=="non inclus":
+					commission=somme/Decimal(100)
+					total=commission+somme
+					if user.solde>=total and total<=1000000:
+						trans=VerificationTransaction.objects.create(
+							user=client,somme=montant,commission=commission_envoi,
+							nature_transaction="envoi direct",reste=reste,service=service)
+						return Response({'id':trans.id,'nature':trans.nature_transaction})
+
+
+
+
+class GetTransactionService(APIView):
+	def post(self,request):
+		user=request.user
+		if user.business:
+			service=Service.objects.get(user=user,active=True)
+			id=request.data.get('id')
+			trans=VerificationTransaction.objects.get(id=id,service=service)
+			serializer=VerificationTransactionSerializer(trans)
+			return Response(serializer.data)
+
+
+class LesTransactionsService(ModelViewSet):
+	queryset=VerificationTransaction.objects.all()
+	serializer_class=VerificationTransactionSerializer
+	@action(methods=["put"], detail=False, url_path='depotservice')
+	def depot(self,request,*args,**kwargs):
+		id=request.data.get('id')
+		user=request.user
+		if user.business:
+			service=Service.objects.get(user=user,active=True)
+			if service is not None:
+				trans=VerificationTransaction.objects.get(id=id,service=service)
+				if trans is not None:
+					client=trans.user
+					if client.active==True and client.document_verif==True and client!=user:
+						getcontext().prec=10
+						client.solde+=trans.sommecoteclient
+						client.save()
+						user.solde-=trans.somme
+						user.save()
+						gain=trans.somme*(5/1000)
+						total=gain+trans.somme
+						#user.solde+=gain
+						#user.save()
+						TransactionService.objects.create(service=service,gain=gain,total=total,
+							montant=trans.somme,nature="Depot",active=True,relever=False)
+						dep=Depot.objects.create(depositaire=client,somme=trans.somme,service=service,
+							relever=False)
+						depotNotif(client,trans.somme)
+						depotBusinessNotif(employe,user,trans.somme)
+						trans.delete()
+						return Response({'id':dep.id,'nature':"depot"})
+
+	@action(methods=["put"], detail=False, url_path='retraitsimple')
+	def retirer(self,request,*args,**kwargs):
+		id=request.data.get('id')
+		user=request.user
+		if user.business:
+			service=Service.objects.get(user=user,active=True)
+			if service is not None:
+				trans=VerificationTransaction.objects.get(id=id,service=service)
+				if trans is not None:
+					client=trans.user
+					if client.active==True and client.document_verif==True and client!=user:
+						getcontext().prec=10
+						client.solde+=trans.somme
+						client.save()
+						gain=trans.somme*(5/1000)
+						total=gain+trans.somme
+						user.solde+=gain
+						user.save()
+						TransactionService.objects.create(service=service,gain=gain,total=total,
+							montant=trans.somme,nature="retrait",active=True,relever=False)
+						retait=Retrait.objects.create(beneficiaire=client,somme=trans.somme,
+						service=service,relever=False)
+						RetraitNotif(client,trans.somme)
+						retraitBusinessNotif(service,client,trans.somme)
+						trans.delete()
+						return Response({'id':retait.id,'nature':"retrait"})
+
+	@action(methods=["put"], detail=False, url_path='retraitcode')
+	def retirer_code(self,request,*args,**kwargs):
+		user=request.user
+		if user.business:
+			service=Service.objects.get(user=user,active=True)
+			if service is not None:
+				code=request.data.get('code')
+				id=request.data.get('id')
+				transfert=ViaCode.objects.get(code=code,active=True,retirer=False)
+				trans=VerificationTransaction.objects.get(id=id,service=service)
+				RetraitCode.objects.create(beneficiaire=trans.nom_complet_destinataire,somme=trans.somme,
+				code=trans.code,service=service,relever=False)
+				user.solde+=trans.somme
+				user.save()
+				gain=trans.somme*(5/1000)
+				total=gain+trans.somme
+				user.solde+=gain
+				user.save()
+				TransactionService.objects.create(service=service,gain=gain,total=total,
+					montant=trans.somme,nature="retrait par code",active=True,relever=False)
+				transfert.active=False
+				trans.retirer=True
+				transfert.save()
+				retraitcodeBusinessNotif(service,trans.nom_complet_destinataire,trans.somme,trans.code)
+				trans.delete()
+				return Response({"id":transfert.id,"nature":"retrait par code"})
+
+	@action(methods=["put"], detail=False, url_path='envoyerviacode')
+	def envoyercode(self,request,*args,**kwargs):
+		user=request.user
+		if user.business:
+			service=Service.objects.get(user=user,active=True)
+			if service is not None:
+				id=request.data.get('id')
+				trans=VerificationTransaction.objects.get(id=id,service=service)
+				if trans is not None:
+					code=randint(100000000,999999999)
+					vicode=ViaCode.objects.create(Nom_complet_du_receveur=trans.nom_complet_destinataire
+					,Nom_complet_de_l_envoyeur=trans.nom_complet_client,somme=trans.somme,
+					service=service,phone_beneficiaire=trans.phone_destinataire,commission=trans.commission,
+					active=True,code=code,retirer=False)
+					getcontext().prec=10
+					admina=User.objects.get(phone="+79649642176")
+					admina.solde+=trans.commission
+					admina.save()
+					user.solde-=trans.somme
+					user.save()
+					gain=trans.somme*(5/1000)
+					total=gain+trans.total
+					user.solde+=gain
+					user.save()
+					TransactionService.objects.create(service=service,gain=gain,total=total,
+						montant=trans.somme,nature="envoi via code",active=True,relever=False)
+					envoicodeBusinessNotif(service,trans.nom_complet_client,trans.somme,code)
+					trans.delete()
+					return Response({'id':vicode.id,'nature':"envoi via code"})
+
+	@action(methods=["put"], detail=False, url_path='envoicompteclient')
+	def envoiclient(self,request,*args,**kwargs):
+		user=request.user
+		if user.business:
+			service=Service.objects.get(user=user,active=True)
+			if service is not None:
+				id=request.data.get('id')
+				trans=VerificationTransaction.objects.get(id=id,service=service)
+				if trans is not None:
+					client=trans.user
+					client.solde+=trans.somme
+					client.save()
+					user.solde-=trans.somme
+					user.save()
+					gain=trans.somme*(5/1000)
+					total=gain+trans.total
+					user.solde+=gain
+					user.save()
+					TransactionService.objects.create(service=service,gain=gain,total=total,
+					montant=trans.somme,nature="envoi direct",active=True,relever=False)
+					getcontext().prec=10
+					admina=User.objects.get(phone="+79649642176")
+					admina.solde+=trans.commission
+					admina.save()
+					envoicodeBusinessNotif(service,trans.nom_complet_client,trans.somme,code)
+					trans.delete()
+					return Response({'id':vicode.id,'nature':"envoi direct"})
+
+	@action(methods=["put"], detail=False, url_path='annulationtransaction')
+	def anunuler_transaction(self,request,*args,**kwargs):
+		id=request.data.get('id')
+		service=Service.objects.get(user=request.user,active=True)
+		trans=VerificationTransaction.objects.get(id=id,service=service)
+		trans.delete()
+		return Response({'success':'annulation'})
+		
 
 
 

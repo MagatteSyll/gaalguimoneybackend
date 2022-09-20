@@ -1,5 +1,5 @@
 from django.db import models
-from user.models import Employe,PointAcces
+from user.models import Employe,PointAcces,Service
 from autoslug import AutoSlugField
 import random
 import string 
@@ -33,6 +33,11 @@ NATURE_ACTION_STAFF=(
 
 class NotificationStaff(models.Model):
 	employe=models.ForeignKey(Employe,on_delete=models.PROTECT)
+	notification=models.TextField()
+	created=models.DateTimeField(auto_now_add=True)
+
+class NotificationService(models.Model):
+	service=models.ForeignKey(Service,on_delete=models.PROTECT)
 	notification=models.TextField()
 	created=models.DateTimeField(auto_now_add=True)
 

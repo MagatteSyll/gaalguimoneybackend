@@ -41,10 +41,31 @@ class UserSerializer(serializers.ModelSerializer):
 		instance.save()
 		return instance
 
+class ContinentSerializer(serializers.ModelSerializer):
+	class Meta:
+		model=Continent
+		fields="__all__"
+
+class MonaieSerializer(serializers.ModelSerializer):
+	class Meta:
+		model=Monaie
+		fields="__all__"
+
+
 class PaysSerializer(serializers.ModelSerializer):
+	continent=serializers.SerializerMethodField()
+	monaie=serializers.SerializerMethodField()
 	class Meta:
 		model=Pays
 		fields="__all__"
+
+	def get_continent(self,obj):
+		return ContinentSerializer(obj.continent).data
+
+	def get_monaie(self,obj):
+		return MonaieSerializer(obj.monaie).data
+
+
 
 class RegionSerializer(serializers.ModelSerializer):
 	pays=serializers.SerializerMethodField()
@@ -77,6 +98,16 @@ class EmployeSerializer(serializers.ModelSerializer):
 
 	def get_point_acces(self,obj):
 		return PointAccesSerializer(obj.point_acces).data
+
+
+class ServiceSerializer(serializers.ModelSerializer):
+	user=serializers.SerializerMethodField()
+	class Meta:
+		model=Service
+		fields="__all__"
+
+	def get_user(self,obj):
+		return UserSerializer(obj.user).data
 
 
 
@@ -175,6 +206,8 @@ class PayementGaalguiSerializer(serializers.ModelSerializer):
 class VerificationTransactionSerializer(serializers.ModelSerializer):
 	user=serializers.SerializerMethodField()
 	employe=serializers.SerializerMethodField()
+	service=serializers.SerializerMethodField()
+	pays_reception=serializers.SerializerMethodField()
 	class Meta:
 		model=VerificationTransaction
 		fields='__all__'
@@ -184,6 +217,12 @@ class VerificationTransactionSerializer(serializers.ModelSerializer):
 
 	def get_employe(self,obj):
 		return EmployeSerializer(obj.employe).data
+
+	def get_service(self,obj):
+		return ServiceSerializer(obj.service).data
+
+	def get_pays_reception(self,obj):
+		return PaysSerializer(obj.pays_reception).data
 
 
 

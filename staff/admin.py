@@ -57,6 +57,21 @@ class NotificationStaffAdmin(admin.ModelAdmin):
 		return obj.employe.user.prenom+" "+obj.employe.user.nom
 
 
+class NotificationServiceAdmin(admin.ModelAdmin):
+	list_display=['get_service',]
+	#search_fields=['user__prenom' ]
+	list_display_links =[ 'get_service']
+	class Meta:
+		model=NotificationStaff
+
+	@admin.display(empty_value='???')
+	def get_service(self, obj):
+		return obj.service.user.prenom+" "+obj.service.user.nom
+
+
+
+
+
 admin.site.register(TendancePub,TendancePubAdmin)
 admin.site.register(ActionStaff,ActionStaffAdmin)
 admin.site.register(NotificationStaff,NotificationStaffAdmin)

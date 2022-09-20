@@ -21,7 +21,7 @@ NATURE_TRANSACTION= (
     ("retrait", "retrait"),
     ("reception", "reception"),
     ("payement", "payement"),
-    ("code","code"),
+    ("code","code"), 
     ("retrait par code","retrait par code"),
     ("annulation commande","annulation commande"),
     ("activation compte","activation compte"),
@@ -29,9 +29,18 @@ NATURE_TRANSACTION= (
     )
 
 
+class Continent(models.Model):
+	continent=models.CharField(max_length=255)
 
+
+class Monaie(models.Model):
+	monaie=models.CharField(max_length=255)
+	valeur_CFA=models.DecimalField(max_digits=19,decimal_places=2,default=0)
+		
 class Pays(models.Model):
+	continent=models.ForeignKey(Continent,on_delete=models.CASCADE,null=True,blank=True) #for now
 	name=models.CharField(max_length=255)
+	monaie_associe=models.ForeignKey(Monaie,on_delete=models.PROTECT,blank=True,null=True)
 
 	def __str__(self):
 		return self.name
@@ -41,12 +50,13 @@ class Region(models.Model):
 	pays=models.ForeignKey(Pays,on_delete=models.CASCADE,)
 
 class PointAcces(models.Model):
-
 	adress=models.CharField(max_length=255)
 	region=models.ForeignKey(Region,on_delete=models.CASCADE)
 
 	def __str__(self):
 		return self.adress
+
+		
  
 #Gestion utilisateur 
 class UserManager(BaseUserManager):
@@ -114,6 +124,7 @@ class User(AbstractBaseUser):
 	is_staff_manager=models.BooleanField(default=False)
 	is_staff_techique=models.BooleanField(default=False)
 	is_staff_manager_personnel=models.BooleanField(default=False)
+	pays=models.ForeignKey(Pays,on_delete=models.PROTECT,blank=True,null=True)
 	#point_acces=models.ForeignKey(PointAcces,on_delete=models.PROTECT,null=True,blank=True)
 
 	
@@ -153,6 +164,26 @@ class Employe(models.Model):
 	user=models.OneToOneField(User,on_delete=models.PROTECT)
 	point_acces=models.ForeignKey(PointAcces,on_delete=models.CASCADE)
 	active=models.BooleanField(default=False)
+
+class Service(models.Model):
+	user=models.OneToOneField(User,on_delete=models.PROTECT)
+	document=models.FileField(upload_to='static/media')
+	region=models.ForeignKey(Region,on_delete=models.CASCADE)
+	adress=models.CharField(max_length=255)
+	contact=models.CharField(max_length=255)
+	active=models.BooleanField(default=True)
+
+
+class TransactionService(models.Model):
+	service=models.ForeignKey(Service,on_delete=models.PROTECT)
+	nature=models.TextField()
+	montant=models.DecimalField(max_digits=19,decimal_places=2,default=0)
+	gain=models.DecimalField(max_digits=19,decimal_places=2,default=0)
+	total=models.DecimalField(max_digits=19,decimal_places=2,default=0)
+	active=models.BooleanField(default=True)
+	relever=models.BooleanField(default=False)
+	employe_relever=models.ForeignKey(Employe,on_delete=models.PROTECT,blank=True,null=True)
+	created=models.DateTimeField(auto_now_add=True)
 	
 
 #Envoi direct d un utilisateur a un autre
@@ -160,9 +191,11 @@ class Envoi(models.Model):
 	envoyeur=models.ForeignKey(User,on_delete=models.PROTECT)
 	phone_receveur=PhoneNumberField()
 	somme=models.DecimalField( max_digits=19, decimal_places=2)
+	sommecoteclient=models.DecimalField( max_digits=19, decimal_places=2,blank=True,null=True)
 	created=models.DateTimeField(auto_now_add=True)
 	commission=models.DecimalField(max_digits=19, decimal_places=2,default=0)
 	relever=models.BooleanField(default=False)
+	service=models.ForeignKey(Service,on_delete=models.PROTECT,blank=True,null=True)
 	total=models.DecimalField(max_digits=19, decimal_places=2,default=0)
 
 
@@ -171,7 +204,9 @@ class Depot(models.Model):
 	depositaire=models.ForeignKey(User,on_delete=models.PROTECT)
 	somme=models.DecimalField( max_digits=19, decimal_places=2)
 	created=models.DateTimeField(auto_now_add=True)
-	employe=models.ForeignKey(Employe,on_delete=models.CASCADE)
+	sommecoteclient=models.DecimalField( max_digits=19, decimal_places=2,blank=True,null=True)
+	employe=models.ForeignKey(Employe,on_delete=models.CASCADE,blank=True,null=True)
+	service=models.ForeignKey(Service,on_delete=models.PROTECT,blank=True,null=True)
 	relever=models.BooleanField(default=False)
 
 	
@@ -180,8 +215,10 @@ class Depot(models.Model):
 class Retrait(models.Model):
 	beneficiaire=models.ForeignKey(User,on_delete=models.PROTECT)
 	somme=models.DecimalField( max_digits=19, decimal_places=2)
+	sommecoteclient=models.DecimalField( max_digits=19, decimal_places=2,blank=True,null=True)
 	created=models.DateTimeField(auto_now_add=True)
-	employe=models.ForeignKey(Employe,on_delete=models.CASCADE)
+	employe=models.ForeignKey(Employe,on_delete=models.CASCADE,blank=True,null=True)
+	service=models.ForeignKey(Service,on_delete=models.PROTECT,blank=True,null=True)
 	relever=models.BooleanField(default=False)
 
 
@@ -189,8 +226,10 @@ class Retrait(models.Model):
 class RetraitCode(models.Model):
 	beneficiaire=models.CharField(max_length=255)
 	somme=models.DecimalField( max_digits=19, decimal_places=2)
+	sommecoteclient=models.DecimalField( max_digits=19, decimal_places=2,blank=True,null=True)
 	created=models.DateTimeField(auto_now_add=True)
-	employe=models.ForeignKey(Employe,on_delete=models.CASCADE)
+	employe=models.ForeignKey(Employe,on_delete=models.CASCADE,blank=True,null=True)
+	service=models.ForeignKey(Service,on_delete=models.PROTECT,blank=True,null=True)
 	relever=models.BooleanField(default=False)
 	code=models.PositiveIntegerField()
 
@@ -203,14 +242,17 @@ class ViaCode(models.Model):
 	Nom_complet_de_l_envoyeur=models.CharField(max_length=255,blank=True,null=True)
 	client=models.ForeignKey(User,on_delete=models.PROTECT,blank=True,null=True)
 	somme=models.DecimalField( max_digits=19, decimal_places=2)
+	sommecoteclient=models.DecimalField( max_digits=19, decimal_places=2,blank=True,null=True)
 	active=models.BooleanField(default=False)
 	retirer=models.BooleanField(default=False)
 	created=models.DateTimeField(auto_now_add=True)
 	phone_beneficiaire=PhoneNumberField()
 	commission=models.DecimalField(max_digits=19, decimal_places=2,default=0)
 	employe=models.ForeignKey(Employe,blank=True,null=True,on_delete=models.CASCADE)
+	service=models.ForeignKey(Service,on_delete=models.PROTECT,blank=True,null=True)
 	relever=models.BooleanField(default=False)
 	total=models.DecimalField(max_digits=19, decimal_places=2,default=0)
+	pays_reception=models.ForeignKey(Pays,on_delete=models.PROTECT,blank=True,null=True)
 
 
 	
@@ -241,13 +283,16 @@ class VerificationTransaction(models.Model):
 	nom_complet_client=models.CharField(max_length=255,null=True,blank=True)
 	created=models.DateTimeField(auto_now_add=True)
 	somme=models.DecimalField(max_digits=19, decimal_places=2)
+	sommecoteclient=models.DecimalField( max_digits=19, decimal_places=2,blank=True,null=True)
 	commission=models.DecimalField( max_digits=19, decimal_places=2)
 	nature_transaction=models.CharField(max_length=255, choices=NATURE_TRANSACTION,blank=True)
 	employe=models.ForeignKey(Employe,null=True,blank=True,on_delete=models.CASCADE)
+	service=models.ForeignKey(Service,null=True,blank=True,on_delete=models.CASCADE)
 	reste=models.DecimalField(max_digits=19, decimal_places=2,default=0)
 	commission_incluse=models.BooleanField(default=False)
 	total=models.DecimalField(max_digits=19, decimal_places=2,default=0)
 	code=models.PositiveIntegerField(default=0)
+	pays_reception=models.ForeignKey(Pays,on_delete=models.PROTECT,blank=True,null=True)
 
 	def __str__(self):
 		return (self.user.nom)
@@ -272,6 +317,7 @@ class PayementGaalgui(models.Model):
 	relever=models.BooleanField(default=False)
 	annuler=models.BooleanField(default=False)
 	prix=models.DecimalField(default=0, max_digits=19, decimal_places=2)
+	prixcoteclient=models.DecimalField( max_digits=19, decimal_places=2,blank=True,null=True)
 	nom=models.CharField(max_length=255,null=True,blank=True)
 
 

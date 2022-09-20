@@ -11,18 +11,35 @@ def depotStaffNotif(employe,client,somme):
 	notifcation="Depot de " +" " + str(somme) + " " +" CFA par " + " " + client.prenom + " " + client.nom 
 	NotificationStaff.objects.create(employe=employe,notification=notifcation) 
 
+def depotBusinessNotif(service,client,somme):
+	notifcation="Depot de " +" " + str(somme) + " " +" CFA par " + " " + client.prenom + " " + client.nom 
+	NotificationService.objects.create(service=service,notification=notifcation) 
+
 
 def retraitStaffNotif(employe,client,somme):
 	notifcation="retrait de " +" " + str(somme) + " " +" CFA par "+ " " +  client.prenom + " " + client.nom 
 	NotificationStaff.objects.create(employe=employe,notification=notifcation) 
 
+def retraitBusinessNotif(service,client,somme):
+	notifcation="retrait de " +" " + str(somme) + " " +" CFA par "+ " " +  client.prenom + " " + client.nom 
+	NotificationService.objects.create(service=service,notification=notifcation) 
+
 def retraitcodeStaffNotif(employe,receveur,somme,code):
 	notifcation="retrait par code de  " +" " + str(somme) + " " +" CFA par " + " " + receveur +" "+ ",code:"+" "+str(code)
 	NotificationStaff.objects.create(employe=employe,notification=notifcation) 
 
+def retraitcodeBusinessNotif(service,receveur,somme,code):
+	notifcation="retrait par code de  " +" " + str(somme) + " " +" CFA par " + " " + receveur +" "+ ",code:"+" "+str(code)
+	NotificationService.objects.create(service=service,notification=notifcation) 
+
 def envoicodeStaffNotif(employe,envoyeur,somme,code):
 	notifcation="envoi via code:" +" " + str(code) + " "+"de" + " " + str(somme) + " " +" CFA par " + " "+ envoyeur
 	NotificationStaff.objects.create(employe=employe,notification=notifcation) 
+
+def envoicodeBusinessNotif(service,envoyeur,somme,code):
+	notifcation="envoi via code:" +" " + str(code) + " "+"de" + " " + str(somme) + " " +" CFA par " + " "+ envoyeur
+	NotificationService.objects.create(service=service,notification=notifcation) 
+
 
 def comptebusineesStaffNotif(employe,nom):
 	notifcation="Creation du compte business de " +" " + nom 

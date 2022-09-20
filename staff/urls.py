@@ -6,8 +6,9 @@ from rest_framework.routers import SimpleRouter
 
 router=SimpleRouter()
 router.register('lestransactions',LesTransactions)
+router.register('lestransactionservice',LesTransactionsService)
 #router.register('suspensionbusiness',SuspensionBusiness)
-#router.register('suspensionprofessionnel',SuspensionProfesionnel)
+#router.register('suspensionprofessionnel',SuspensionProfesionnel) 
 
 
 
@@ -71,7 +72,13 @@ urlpatterns=[
     #path('relevesuspensionperiodic/',ReleveSuspensionPayementPeriodic.as_view()),
     path('verificationclientreactivation/',VerifyClientReactivation.as_view()),
     path('getpolzareactivation/',GetUserReactivation.as_view()),
-    path('reactivationuser/',ReactivationClient.as_view())
+    path('reactivationuser/',ReactivationClient.as_view()),
+    path('verificationdepotservice/',VerificationDepotService.as_view()),
+    path('verificationretraitservice/',VerificatioRetraitService.as_view()),
+    path('verificatioretraitcodeservice/',VerificationRetraitViaCodeService.as_view()),
+    path('verificationenvoicodeservice/',VerificationEnvoiCodeService.as_view()),
+    path('verificationenvoicompte/',VerificationEnvoiCompteServiceEnvoi.as_view()),
+    path('getransactionservice/',GetTransactionService.as_view())
     
     
 
